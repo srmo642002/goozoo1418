@@ -54,7 +54,11 @@ class Test1 {
                 }
                 safKharid.clear()
                 safForoosh.clear()
-                dateAmmar[date] = [bega: begaaaHaa.findAll { it.date == date }, nakaam: naakaamHaa.findAll { it.date == date }, tamoom: tamoom.findAll { it.date == date }]
+                dateAmmar[date] = [
+                        bega: begaaaHaa.findAll { it.date == date },
+                        nakaam: naakaamHaa.findAll { it.date == date },
+                        tamoom: tamoom.findAll { it.date == date }
+                ]
                 dateAmmar[date].profit = (dateAmmar[date].bega.collect { it.foroosh / it.kharid - 1.014 }.sum() ?: 0) +
                         (dateAmmar[date].tamoom.collect { it.foroosh / it.kharid - 1.014 }.sum() ?: 0)
             }

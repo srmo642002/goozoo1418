@@ -17,6 +17,7 @@ class SymbolPriceHistory {
     String marketType
     Integer last
     Integer closing
+    Integer closing_5
     Integer yesterday
     Double closing10
     Double max10
@@ -44,6 +45,7 @@ class SymbolPriceHistory {
     Double minAllow
     Double maxAllow
     Double indexChange
+    Double rsi
 
     Timestamp time //used only for test
 
@@ -57,6 +59,7 @@ class SymbolPriceHistory {
                 marketType: this.marketType,
                 last: this.last,
                 closing: this.closing,
+                closing_5: this.closing_5,
                 yesterday: this.yesterday,
                 closing10: this.closing10,
                 max10: this.max10,
@@ -84,6 +87,7 @@ class SymbolPriceHistory {
                 avgVol21Day: this.avgVol21Day,
                 baseVol: this.baseVol,
                 indexChange: this.indexChange,
+                rsi: this.rsi,
                 time: this.time
         )
     }

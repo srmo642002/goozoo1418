@@ -1,5 +1,6 @@
 package com.example.demo
 
+import com.example.demo.data.SymbolPriceHistory
 import com.example.demo.data.SymbolPriceHistoryDao
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -8,32 +9,37 @@ import javax.annotation.PostConstruct
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 
-//@Component
-class Test1 {
+@Component
+class TestGanjeGharoon {
+    def rsiThreshold = 70
+    def closingWeek = 1.07 //7%
+    def queueVolumeThreshold = 1000000
+    def indexMosbat = 1
+    def indexManfi = -1
+
     @Autowired
     SymbolPriceHistoryDao symbolPriceHistoryDao
     def df = new SimpleDateFormat('yyyyMMdd')
 
     @PostConstruct
     void init() {
-        def dirName = 'nejat1'
+        def dirName = 'ganjeGharon'
 
         Thread.start {
             new File(dirName).mkdirs()
             new File(dirName).listFiles().each { it.delete() }
             def g1 = new HashSet()
-            def g2 = new HashSet()
             def g = new HashSet()
             def gb = new HashSet()
-            def n = new HashSet()
             println "STAETED, FETCHING DATA..."
-            def items = symbolPriceHistoryDao.findAllByTime(new Timestamp(df.parse('20200419').time))
+            def items = symbolPriceHistoryDao.findAllByTime(new Timestamp(df.parse('20200401').time))
             println "DATA READY"
 
             def safKharid = [:]
             def kharid = [:]
             def safForoosh = [:]
             def lastData = [:]
+            def yesterdayData = [:]
             def firstData = [:]
             def tamoom = []
             def naakaamHaa = []
@@ -42,8 +48,8 @@ class Test1 {
             def dateCandidate = [:]
             def date
             def calcAmar = { ->
-                def filter = gb.findAll { g1.contains(it) && g2.contains(it) }
-                println " test: date:${date}, g1:${g1.size()}, g2:${g2.size()}, gb:${gb.size()}, filter:${filter} "
+                def filter = gb.findAll { g1.contains(it) }
+                println " test: date:${date}, g1:${g1.size()}, gb:${gb.size()}, filter:${filter} "
                 dateCandidate[date] = filter.collect { lastData[it].namad }
                 safForoosh.keySet().each {
                     begaaaHaa.add([date: date, tick: lastData[it], kharid: safKharid[it], foroosh: lastData[it].last, ktick: kharid[it], canForoosh: false])
@@ -55,7 +61,7 @@ class Test1 {
                 safKharid.clear()
                 safForoosh.clear()
                 dateAmmar[date] = [
-                        bega: begaaaHaa.findAll { it.date == date },
+                        bega  : begaaaHaa.findAll { it.date == date },
                         nakaam: naakaamHaa.findAll { it.date == date },
                         tamoom: tamoom.findAll { it.date == date }
                 ]
@@ -70,50 +76,84 @@ class Test1 {
                     if (date) {
                         calcAmar()
                     }
-                    g2.clear()
-                    g2.addAll(g1)
                     g1.clear()
                     g1.addAll(g)
                     g.clear()
                     gb.clear()
-                    n.clear()
                     firstData.clear()
 
                     date = df.format(tick.time)
 
                 }
                 if (isSelectionTimeMinusOne(tick.time)) {
-                    if ((tick.last ?: 0) - (firstData[tick.id]?.last ?: 0) < 0) //last < first
+                    yesterdayData[tick.id] = tick
+                    if (tick.rsi >= rsiThreshold &&
+                            tick.closing / tick.closing_5 >= closingWeek &&
+                            (tick.bestBuyVolume ?: 0) - (tick.bestSellVolume ?: 0) >= queueVolumeThreshold)
                         g.add(tick.id)
                     else
                         g.remove(tick.id)
                 }
-                if (isSelectionTime(tick.time)) {
-                    if ((tick.bestSellVolume ?: 0) - (tick.bestBuyVolume ?: 0) > tick.avgVol5Day) { //saf > avg vol week
-                        gb.add(tick.id)
-                    } else
-                        gb.remove(tick.id)
-                }
-                if (isSelectionTime2(tick.time)) {
-                    if (!firstData.containsKey(tick.id) && tick.last)
-                        firstData[tick.id] = tick
-                    def q = (tick.bestSellVolume ?: 0) - (tick.bestBuyVolume ?: 0)
-                    def volRate = (tick.bestSellVolume ?: 0) / (tick.avgVol5Day ?: tick.avgVol21Day ?: Long.MAX_VALUE)
+                if (isSelectionTime(tick.time)) { // 8:30 ta 9
+                    // todo: index dar tool e bazar alan sabete ,, vase hamin avval be bazar rasad mikonim
+                    //rasad baraye navasan giri
+                    SymbolPriceHistory tickY = lastData[tick.id]
+                    if (tickY) {
+                        def q_1 = (tickY.bestBuyVolume ?: 0) - (tickY.bestSellVolume ?: 0)
+                        def q = (tick.bestBuyVolume ?: 0) - (tick.bestSellVolume ?: 0)
+                        if (tick.indexChange > indexMosbat) { // bazar e mosbat
+                            if (q_1 >= tickY.baseVol && q_1 <= (tickY.baseVol ?: 0) * 10)
+                                gb.add(tick.id)
+                            else
+                                gb.remove(tick.id)
+                        } else if (tick.indexChange <= indexMosbat && tick.indexChange >= indexManfi) {
+                            // bazar moteadel
+                            if (q_1 >= (tickY.avgVol21Day ?: tickY.avgVol5Day)
+                                    && q >= queueVolumeThreshold)
+                                gb.add(tick.id)
+                            else
+                                gb.remove(tick.id)
+                        } else { // bazar manfi
+                            if (q_1 >= (tickY.avgVol21Day ?: tickY.avgVol5Day ?: 0) * 5
+                                    && q >= queueVolumeThreshold && tick.bestBuyVolume / (tick.bestSellVolume ?: 1) >= 5)
+                                gb.add(tick.id)
+                            else
+                                gb.remove(tick.id)
+                        }
+                    }
 
-                    if (q < 1000000 && q > 10 && volRate >= 2)
-                        n.add(tick.id)
-                    else
-                        n.remove(tick.id)
+                }
+                if (isSelectionTime2(tick.time)) { // 9,10,11
+
+
                 }
                 if (isTradeTime(tick.time)) {
-                    if (g2.contains(tick.id) && g1.contains(tick.id) && gb.contains(tick.id)) {
+                    if (g1.contains(tick.id) && gb.contains(tick.id)) {
                         if (tick.last) {
-                            if (!safKharid.containsKey(tick.id) && !safForoosh.containsKey(tick.id) && n.contains(tick.id)) {
-                                safKharid[tick.id] = tick.last
+                            if (!safKharid.containsKey(tick.id) && !safForoosh.containsKey(tick.id)) {
+                                if (tick.indexChange > indexMosbat) { // bazar e mosbat
+                                    if (tick.closing / tick.last >= 1)
+                                        safKharid[tick.id] = tick.closing / 1.05
+                                } else if (tick.indexChange <= indexMosbat && tick.indexChange >= indexManfi) {
+                                    // bazar moteadel
+                                    if (tick.closing / tick.last >= 1)
+                                        safKharid[tick.id] = tick.closing / 1.05
+                                } else { // bazar manfi
+                                    if (tick.closing / tick.last >= 1.05)
+                                        safKharid[tick.id] = tick.minAllow
+                                }
                             }
                             if (safKharid.containsKey(tick.id) && Math.min(tick.last, tick.min10) <= safKharid[tick.id] && !safForoosh.containsKey(tick.id)) {
                                 kharid[tick.id] = tick
-                                safForoosh[tick.id] = tick.maxAllow
+                                if (tick.indexChange > indexMosbat) { // bazar e mosbat
+                                    safForoosh[tick.id] = tick.last * 1.05
+                                } else if (tick.indexChange <= indexMosbat && tick.indexChange >= indexManfi) {
+// bazar moteadel
+                                    safForoosh[tick.id] = tick.last * 1.05
+                                } else { // bazar manfi
+                                    safForoosh[tick.id] = tick.last * 1.05
+                                }
+
                             } else if (safForoosh.containsKey(tick.id) && safKharid.containsKey(tick.id) && Math.max(tick.last, tick.max10) >= safForoosh[tick.id]) {
                                 def item = [tick: tick, date: date, kharid: safKharid[tick.id], foroosh: safForoosh[tick.id], ktick: kharid[tick.id]]
                                 tamoom.add(item)

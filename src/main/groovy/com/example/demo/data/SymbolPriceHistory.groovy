@@ -46,6 +46,8 @@ class SymbolPriceHistory {
     Double maxAllow
     Double indexChange
     Double rsi
+    Long queueYesterday
+    Long queueSob
 
     Timestamp time //used only for test
 

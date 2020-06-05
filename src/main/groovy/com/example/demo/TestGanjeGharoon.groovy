@@ -15,7 +15,7 @@ class TestGanjeGharoon {
     def config = [
             new AlgConfig(name: 'khey-manfi', fromIndex: -5, toIndex: -2, rsiThreshold: 70, weekChangePercentage: 1.15, qSobThreshold: 2000000, qYesterdayThreshold: 1000000, qSobToAvgMonth: 5, qYesterdayToAvgMonth: 5, qSobToBaseVol: 0, qYesterdayToBaseVol: 0, buy: 1.05, sell: 1.05, buyOnMinAllow: true, sellOnMaxAllow: false, stopSellIfBuyQueue: false),
             new AlgConfig(name: 'manfi', fromIndex: -2, toIndex: -1, rsiThreshold: 70, weekChangePercentage: 1.09, qSobThreshold: 1000000, qYesterdayThreshold: 1000000, qSobToAvgMonth: 3, qYesterdayToAvgMonth: 3, qSobToBaseVol: 0, qYesterdayToBaseVol: 0, buy: 1.05, sell: 1.05, buyOnMinAllow: true, sellOnMaxAllow: false, stopSellIfBuyQueue: false),
-            new AlgConfig(name: 'normal', fromIndex: -1, toIndex: 1, rsiThreshold: 70, weekChangePercentage: 1.07, qSobThreshold: 1000000, qYesterdayThreshold: 0, qSobToAvgMonth: 0, qYesterdayToAvgMonth: 1, qSobToBaseVol: 0, qYesterdayToBaseVol: 0, buy: 1.05, sell: 1.05, buyOnMinAllow: false, sellOnMaxAllow: false, stopSellIfBuyQueue: false),
+            new AlgConfig(name: 'normal', fromIndex: -1, toIndex: 1, rsiThreshold: 70, weekChangePercentage: 1.07, qSobThreshold: 1000000, qYesterdayThreshold: 1000000, qSobToAvgMonth: 0, qYesterdayToAvgMonth: 1, qSobToBaseVol: 0, qYesterdayToBaseVol: 0, buy: 1.05, sell: 1.05, buyOnMinAllow: false, sellOnMaxAllow: false, stopSellIfBuyQueue: false),
             new AlgConfig(name: 'mosbat', fromIndex: 1, toIndex: 2, rsiThreshold: 0, weekChangePercentage: 0, qSobThreshold: 0, qYesterdayThreshold: 0, qSobToAvgMonth: 0, qYesterdayToAvgMonth: 0, qSobToBaseVol: 0, qYesterdayToBaseVol: 0, buy: 1.05, sell: 1.05, buyOnMinAllow: false, sellOnMaxAllow: false, stopSellIfBuyQueue: true),
             new AlgConfig(name: 'khey-mosbat', fromIndex: 2, toIndex: 5, rsiThreshold: 0, weekChangePercentage: 0, qSobThreshold: 0, qYesterdayThreshold: 0, qSobToAvgMonth: 0, qYesterdayToAvgMonth: 0, qSobToBaseVol: 0, qYesterdayToBaseVol: 0, buy: 1.05, sell: 1.05, buyOnMinAllow: false, sellOnMaxAllow: false, stopSellIfBuyQueue: true),
     ]
@@ -81,7 +81,7 @@ class TestGanjeGharoon {
             AlgConfig algConfig
             def lastIndex
             while (!maxPage || page < maxPage) {
-                def items = symbolPriceHistoryDao.findAll(PageRequest.of(page, 25000/*, Sort.Direction.ASC, 'time'*/))
+                def items = symbolPriceHistoryDao.findAll(PageRequest.of(page, 500000/*, Sort.Direction.ASC, 'time'*/))
                 maxPage = items.totalPages
                 println "${page}/${maxPage}: tamom:${tamoom.size()}, montazere-foroosh:${safForoosh.size() + mandeHaa.size()}, montazere-kharid:${safKharid.size()}"
                 page++
@@ -127,7 +127,7 @@ class TestGanjeGharoon {
                             }
                             if (safKharid.containsKey(tick.id) && Math.min(tick.last, tick.min10) <= safKharid[tick.id] && !safForoosh.containsKey(tick.id)) {
                                 kharid[tick.id] = tick
-                                safForoosh[tick.id] = algConfig.sellOnMaxAllow ? tick.maxAllow : (tick.last * algConfig.sell)
+                                safForoosh[tick.id] = algConfig.sellOnMaxAllow ? tick.maxAllow : (safKharid[tick.id] * algConfig.sell)
                             } else if (safForoosh.containsKey(tick.id) && safKharid.containsKey(tick.id) && Math.max(tick.last, tick.max10) >= safForoosh[tick.id]) {
                                 def item = [tick: tick, date: date, kharid: safKharid[tick.id], foroosh: safForoosh[tick.id], ktick: kharid[tick.id]]
                                 tamoom.add(item)

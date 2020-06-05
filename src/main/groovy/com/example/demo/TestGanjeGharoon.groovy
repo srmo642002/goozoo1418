@@ -83,7 +83,7 @@ class TestGanjeGharoon {
             while (!maxPage || page < maxPage) {
                 def items = symbolPriceHistoryDao.findAll(PageRequest.of(page, 25000/*, Sort.Direction.ASC, 'time'*/))
                 maxPage = items.totalPages
-                println "${page}/${maxPage}: tamom:${tamoom.size()}, montazere-foroosh:${safForoosh.size()}, montazere-kharid:${safKharid.size()}"
+                println "${page}/${maxPage}: tamom:${tamoom.size()}, montazere-foroosh:${safForoosh.size() + mandeHaa.size()}, montazere-kharid:${safKharid.size()}"
                 page++
                 items.content.each { tick ->
                     lastData[tick.id] = tick
